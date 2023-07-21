@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jaswdr/faker"
 	"gorm.io/gorm"
 )
@@ -32,7 +33,22 @@ func NewSeeder(db *gorm.DB) Seeder {
 func (s *seeder) SeedUsersFromCSV() {
 	users := storage.ReadCsv()
 
-	err := s.db.Create(&users).Error
+	u := uuid.New().String()
+	err := s.db.Create(entity.Versioning{
+		ID:      u,
+		Version: 1,
+		Offset:  len(users),
+	}).Error
+	if err != nil {
+		logs.Error().Err(err).Msg("failed to seed users")
+		os.Exit(1)
+	}
+
+	for k, _ := range users {
+		users[k].Version = u
+	}
+
+	err = s.db.Create(&users).Error
 	if err != nil {
 		logs.Error().Err(err).Msg("failed to seed users")
 		os.Exit(1)

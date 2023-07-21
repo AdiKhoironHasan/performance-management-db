@@ -46,21 +46,35 @@ func main() {
 	// SELF REVIEW
 
 	// seed new self assesment session
-	sessions.SelfReview, err = seeder.SeedSessionSelfAssesment(event.ID)
+	sessions.SelfReview, err = seeder.SeedSession(event.ID, "self_assess")
 	if err != nil {
 		panic(err)
 	}
 
-	// Task : self assessment and get questions
-	sessions.SelfReview.Questions, err = seeder.SeedSelfAssesmentTask(sessions.SelfReview, participants)
+	// seed new self assesment questions
+	sessions.SelfReview.Questions, err = seeder.SeedQuestion(10, sessions.SelfReview)
 	if err != nil {
 		panic(err)
+	}
+
+	// Task : self assessment
+	for _, reviewee := range participants {
+		for _, reviewer := range participants {
+			err = seeder.SeedAssesmentTask(sessions.SelfReview, sessions.SelfReview.Questions, reviewee, reviewer)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 
 	// Answer : self assessment
-	err = seeder.SeedAnswerSelfAssesmentTask(sessions.SelfReview.Questions, participants)
-	if err != nil {
-		panic(err)
+	for _, reviewee := range participants {
+		for _, reviewer := range participants {
+			err = seeder.SeedAnswerAssesmentTask(sessions.SelfReview, sessions.SelfReview.Questions, reviewee, reviewer)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 
 	results, err = gather.GetSelfAssessmentTask(sessions.SelfReview)
@@ -117,11 +131,7 @@ func main() {
 
 	// ========== SESSION 2 - CHOOSE PEERS ============
 	// TODO: choose peers from leader
-
-	// ========== SESSION 3 - PEERS REVIEW ============
-
-	// seed new peer assesment session
-	sessions.PeersReview, err = seeder.SeedSessionPeerAssesment(event.ID)
+	sessions.PeersReview, err = seeder.SeedSession(event.ID, "peers_assess")
 	if err != nil {
 		panic(err)
 	}
@@ -131,12 +141,10 @@ func main() {
 		panic(err)
 	}
 
-	// Seed : new peers assesment task
-	// TODO: get peers from leader
 	for _, reviewer := range participants {
 		for _, peer := range participants {
 			if reviewer.ID != peer.ID {
-				err = seeder.SeedPeersAssesmentTask(sessions.PeersReview, sessions.PeersReview.Questions, reviewer, peer)
+				err = seeder.SeedAssesmentTask(sessions.PeersReview, sessions.PeersReview.Questions, peer, reviewer)
 				if err != nil {
 					panic(err)
 				}
@@ -144,10 +152,44 @@ func main() {
 		}
 	}
 
+	// ========== SESSION 3 - PEERS REVIEW ============
+	// Seed : new peers assesment task
+	// TODO: get peers from leader
+
+	// seed new peer assesment session
+	// sessions.PeersReview, err = seeder.SeedSession(event.ID, "peers_assess")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// sessions.PeersReview.Questions, err = seeder.SeedQuestion(10, sessions.PeersReview)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// // Seed : new peers assesment task
+	// // TODO: get peers from leader
+	// for _, reviewer := range participants {
+	// 	for _, peer := range participants {
+	// 		if reviewer.ID != peer.ID {
+	// 			err = seeder.SeedAssesmentTask(sessions.PeersReview, sessions.PeersReview.Questions, peer, reviewer)
+	// 			if err != nil {
+	// 				panic(err)
+	// 			}
+	// 		}
+	// 	}
+	// }
+
 	// Answer : peers assesment task
-	err = seeder.SeedAnswerPeersAssesmentTask(sessions.PeersReview.Questions, participants)
-	if err != nil {
-		panic(err)
+	for _, reviewer := range participants {
+		for _, peer := range participants {
+			if reviewer.ID != peer.ID {
+				err = seeder.SeedAnswerAssesmentTask(sessions.PeersReview, sessions.PeersReview.Questions, peer, reviewer)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
 	}
 
 	results, err = gather.GetPeersAssessmentTask(sessions.PeersReview)
@@ -214,7 +256,7 @@ func main() {
 		fmt.Println(map[string]interface{}{
 			"reviewee": report.Reviewee,
 			"question": report.Question,
-			"total":    report.Total,
+			"avg":      fmt.Sprintf("%.1f", report.Total),
 		})
 	}
 }

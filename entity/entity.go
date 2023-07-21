@@ -1,9 +1,20 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
+type Versioning struct {
+	ID      string `gorm:"primary_key"`
+	Version int    `gorm:"not null"`
+	Offset  int    `gorm:"not null"`
+}
 
 type User struct {
 	ID                     int        `gorm:"primaryKey"`
+	Version                string     `gorm:"not null"`
 	Name                   string     `gorm:"not null"`
 	PrivyID                string     `gorm:"not null"`
 	Email                  string     `gorm:"not null"`
@@ -79,4 +90,32 @@ type QuestionAnswer struct {
 	DeletedAt  *time.Time `gorm:"column:deleted_at"`
 
 	Type string `gorm:"column:type"`
+}
+
+type FormAnswerScale struct {
+	ID         uint `gorm:"primaryKey"`
+	SessionID  int
+	RevieweeID int
+	ReviewerID int
+	QuestionID int
+	Sort       int
+	ScaleValue int `gorm:"column:scale_value;note:maximum value by max"`
+	Max        int `gorm:"note:maximum value of type scale"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+}
+
+// Struct for the "form_answer_text" table
+type FormAnswerText struct {
+	ID         uint `gorm:"primaryKey"`
+	SessionID  int
+	RevieweeID int
+	ReviewerID int
+	QuestionID int
+	Sort       int
+	TextValue  string `gorm:"column:text_value"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
 }

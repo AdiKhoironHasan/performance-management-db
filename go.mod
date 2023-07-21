@@ -3,10 +3,10 @@ module engine-db
 go 1.20
 
 require (
+	github.com/google/uuid v1.3.0
 	github.com/jaswdr/faker v1.18.0
 	github.com/rs/zerolog v1.29.1
 	github.com/timemore/foundation v0.0.0-20230713052722-2288629241cf
-	golang.org/x/sync v0.1.0
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.2
 )

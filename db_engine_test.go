@@ -11,7 +11,5 @@ func TestEngineDB(t *testing.T) {
 
 	seeder := seeder.NewSeeder(db)
 
-	// seeder.SeedUsers()
 	seeder.SeedUsersFromCSV()
-	seeder.SeedEventCycle()
 }

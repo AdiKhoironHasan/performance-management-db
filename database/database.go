@@ -42,11 +42,14 @@ func New() *gorm.DB {
 	}
 
 	err = db.AutoMigrate(
+		&entity.Versioning{},
 		&entity.User{},
 		&entity.Event{},
 		&entity.Session{},
 		&entity.Question{},
 		&entity.QuestionAnswer{},
+		&entity.FormAnswerScale{},
+		&entity.FormAnswerText{},
 	)
 	if err != nil {
 		logs.Error().Err(err).Msg("failed to migrate")
