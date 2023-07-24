@@ -1,7 +1,6 @@
 package database
 
 import (
-	"engine-db/entity"
 	"engine-db/logger"
 	"os"
 
@@ -35,26 +34,26 @@ func New() *gorm.DB {
 		os.Exit(1)
 	}
 
-	err = db.Exec("DROP TABLE IF EXISTS users, events, sessions, questions, question_answers;").Error
-	if err != nil {
-		logs.Error().Err(err).Msg("failed to drop table")
-		os.Exit(1)
-	}
+	// err = db.Exec("DROP TABLE IF EXISTS users, events, sessions, questions, question_answers;").Error
+	// if err != nil {
+	// 	logs.Error().Err(err).Msg("failed to drop table")
+	// 	os.Exit(1)
+	// }
 
-	err = db.AutoMigrate(
-		&entity.Versioning{},
-		&entity.User{},
-		&entity.Event{},
-		&entity.Session{},
-		&entity.Question{},
-		&entity.QuestionAnswer{},
-		&entity.FormAnswerScale{},
-		&entity.FormAnswerText{},
-	)
-	if err != nil {
-		logs.Error().Err(err).Msg("failed to migrate")
-		os.Exit(1)
-	}
+	// err = db.AutoMigrate(
+	// 	&entity.Versioning{},
+	// 	&entity.User{},
+	// 	&entity.Event{},
+	// 	&entity.Session{},
+	// 	&entity.Question{},
+	// 	&entity.QuestionAnswer{},
+	// 	&entity.FormAnswerScale{},
+	// 	&entity.FormAnswerText{},
+	// )
+	// if err != nil {
+	// 	logs.Error().Err(err).Msg("failed to migrate")
+	// 	os.Exit(1)
+	// }
 
 	return db
 }
