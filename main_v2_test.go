@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/csv"
 	"engine-db/database"
 	entity "engine-db/entity/new"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jaswdr/faker"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -64,6 +66,34 @@ func FindLeaderAndMember(db *gorm.DB, userVersion string, leadershipStatus strin
 	return result, nil
 }
 
+func FindMemberByLeaderID(db *gorm.DB, userVersion string, leaderID int64) ([]entity.User, error) {
+	var (
+		result []entity.User
+		err    error
+	)
+
+	query := `
+					SELECT u2.*
+					FROM users u1, users u2
+					WHERE
+					u1.privy_id = u2.direct_leader_employee_id
+					AND
+					u1.version = $1 and u2.version = $1
+					AND
+					u1.id = $2;
+					`
+
+	err = db.Raw(query, userVersion, leaderID).Scan(&result).Error
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return result, err
+}
+
 func TestMainV2(t *testing.T) {
 	const (
 		EventStatusToDo       = "TODO"
@@ -106,6 +136,8 @@ func TestMainV2(t *testing.T) {
 		dataUserVersion        = entity.UserVersion{}
 
 		dataEvent = entity.Event{}
+
+		f = faker.New()
 	)
 
 	// make connection db
@@ -683,5 +715,199 @@ func TestMainV2(t *testing.T) {
 
 	// create user answer for text
 	err = db.Create(memberAssessLeaderNonLeader.UserAnswerText).Error
+	assert.NoError(t, err)
+
+	// ====== 6. create peers assess leadership ======
+	var (
+		peersAssessLeader = DataSession{}
+	)
+
+	err = db.Create(&entity.Session{
+		EventID:     dataEvent.ID,
+		Type:        SessionPeerReviewLeadership,
+		Name:        "Peers Assess Leadership",
+		Description: "Desc for Peers Assess Leadership",
+		Status:      SessionStatusToDo,
+		StartDate:   time.Now().AddDate(0, 0, 4),
+		EndDate:     time.Now().AddDate(0, 0, 20),
+	}).Scan(&peersAssessLeader.Session).Error
+	assert.NoError(t, err)
+
+	// create questions
+	for i := 1; i <= 10; i++ {
+		questionType := QuestionTypeScale
+		questionMax := 4
+
+		if i > 7 {
+			questionType = QuestionTypeText
+			questionMax = 0
+		}
+
+		peersAssessLeader.Question = append(peersAssessLeader.Question, entity.Question{
+			SessionID: peersAssessLeader.Session.ID,
+			Sort:      i,
+			Name:      fmt.Sprintf("Question %d", i),
+			Type:      questionType,
+			Max:       questionMax,
+		})
+	}
+
+	err = db.Create(peersAssessLeader.Question).Error
+	assert.NoError(t, err)
+
+	// ====== 7. create peers assess non leadership ======
+	var (
+		peersAssessNonLeader = DataSession{}
+	)
+
+	err = db.Create(&entity.Session{
+		EventID:     dataEvent.ID,
+		Type:        SessionPeerReviewNonLeadership,
+		Name:        "Peers Assess Non Leadership",
+		Description: "Desc for Peers Assess Non Leadership",
+		Status:      SessionStatusToDo,
+		StartDate:   time.Now().AddDate(0, 0, 4),
+		EndDate:     time.Now().AddDate(0, 0, 20),
+	}).Scan(&peersAssessNonLeader.Session).Error
+	assert.NoError(t, err)
+
+	// create questions
+	for i := 1; i <= 10; i++ {
+		questionType := QuestionTypeScale
+		questionMax := 4
+
+		if i > 7 {
+			questionType = QuestionTypeText
+			questionMax = 0
+		}
+
+		peersAssessNonLeader.Question = append(peersAssessNonLeader.Question, entity.Question{
+			SessionID: peersAssessNonLeader.Session.ID,
+			Sort:      i,
+			Name:      fmt.Sprintf("Question %d", i),
+			Type:      questionType,
+			Max:       questionMax,
+		})
+	}
+
+	err = db.Create(peersAssessNonLeader.Question).Error
+	assert.NoError(t, err)
+
+	// ====== 8. create choose peers ======
+	var (
+		choosePeers = DataSession{}
+	)
+
+	err = db.Create(&entity.Session{
+		EventID:     dataEvent.ID,
+		Type:        SessionChoosePeers,
+		Name:        "Choose Peers",
+		Description: "Desc for Choose Peers",
+		Status:      SessionStatusToDo,
+		StartDate:   time.Now().AddDate(0, 0, 4),
+		EndDate:     time.Now().AddDate(0, 0, 20),
+	}).Scan(&choosePeers.Session).Error
+	assert.NoError(t, err)
+
+	userIDs := []int{}
+	for _, val := range dataUsers {
+		userIDs = append(userIDs, int(val.ID))
+	}
+
+	// iterate leader user
+	for _, val := range dataUserLeader {
+		// get members detail
+		members, err := FindMemberByLeaderID(db, val.Version, val.ID)
+		assert.NoError(t, err)
+
+		for _, member := range members {
+			if member.LeadershipStatus == LeadershipStatusLeader {
+				peersAssessLeader.FormTask = append(peersAssessLeader.FormTask, entity.FormTask{
+					SessionID:  peersAssessLeader.Session.ID,
+					RevieweeID: member.ID,
+					ReviewerID: int64(f.RandomIntElement(userIDs)),
+					Status:     FormTasksStatusToDo,
+				})
+			} else {
+				peersAssessNonLeader.FormTask = append(peersAssessNonLeader.FormTask, entity.FormTask{
+					SessionID:  peersAssessNonLeader.Session.ID,
+					RevieweeID: member.ID,
+					ReviewerID: int64(f.RandomIntElement(userIDs)),
+					Status:     FormTasksStatusToDo,
+				})
+			}
+		}
+	}
+
+	// store form tasks answer for peers assess leadership
+	for _, formTask := range peersAssessNonLeader.FormTask {
+		for _, question := range peersAssessNonLeader.Question {
+			if question.Type == QuestionTypeText {
+				peersAssessLeader.UserAnswerScale = append(peersAssessLeader.UserAnswerScale, entity.FormTextAnswer{
+					SessionID:  formTask.SessionID,
+					QuestionID: question.ID,
+					RevieweeID: formTask.RevieweeID,
+					ReviewerID: formTask.ReviewerID,
+					Sort:       question.Sort,
+					TextValue:  fmt.Sprintf("Answer for question %d", question.Sort),
+				})
+			}
+
+			if question.Type == QuestionTypeScale {
+				peersAssessLeader.UserAnswerText = append(peersAssessLeader.UserAnswerText, entity.FormScaleAnswer{
+					SessionID:  formTask.SessionID,
+					QuestionID: question.ID,
+					RevieweeID: formTask.RevieweeID,
+					ReviewerID: formTask.ReviewerID,
+					Sort:       question.Sort,
+					ScaleValue: 4,
+					Max:        question.Max,
+				})
+			}
+		}
+	}
+
+	// create user answer for scale
+	err = db.Create(peersAssessLeader.UserAnswerScale).Error
+	assert.NoError(t, err)
+
+	// create user answer for text
+	err = db.Create(peersAssessLeader.UserAnswerText).Error
+	assert.NoError(t, err)
+
+	// store form tasks answer for peers assess non leadership
+	for _, formTask := range peersAssessNonLeader.FormTask {
+		for _, question := range peersAssessNonLeader.Question {
+			if question.Type == QuestionTypeText {
+				peersAssessNonLeader.UserAnswerScale = append(peersAssessNonLeader.UserAnswerScale, entity.FormTextAnswer{
+					SessionID:  formTask.SessionID,
+					QuestionID: question.ID,
+					RevieweeID: formTask.RevieweeID,
+					ReviewerID: formTask.ReviewerID,
+					Sort:       question.Sort,
+					TextValue:  fmt.Sprintf("Answer for question %d", question.Sort),
+				})
+			}
+
+			if question.Type == QuestionTypeScale {
+				peersAssessNonLeader.UserAnswerText = append(peersAssessNonLeader.UserAnswerText, entity.FormScaleAnswer{
+					SessionID:  formTask.SessionID,
+					QuestionID: question.ID,
+					RevieweeID: formTask.RevieweeID,
+					ReviewerID: formTask.ReviewerID,
+					Sort:       question.Sort,
+					ScaleValue: 4,
+					Max:        question.Max,
+				})
+			}
+		}
+	}
+
+	// create user answer for scale
+	err = db.Create(peersAssessNonLeader.UserAnswerScale).Error
+	assert.NoError(t, err)
+
+	// create user answer for text
+	err = db.Create(peersAssessNonLeader.UserAnswerText).Error
 	assert.NoError(t, err)
 }
