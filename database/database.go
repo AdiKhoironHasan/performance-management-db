@@ -1,8 +1,8 @@
 package database
 
 import (
+	entity "engine-db/entity/new"
 	"engine-db/logger"
-	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	logs = logger.NewLogger().Logger.With().Str("pkg", "seeder").Logger()
+	logs = logger.NewLogger().Logger.With().Str("pkg", "database").Logger()
 )
 
-func New() *gorm.DB {
+func New() (*gorm.DB, error) {
 	var sqlQueryLogLevel gormLogger.LogLevel = gormLogger.Info
 
 	queryLogging := newSQLLogging(SQLLogConfig{
@@ -31,29 +31,44 @@ func New() *gorm.DB {
 	)
 	if err != nil {
 		logs.Error().Err(err).Msg("failed to connect to database")
-		os.Exit(1)
+		return nil, err
 	}
 
-	// err = db.Exec("DROP TABLE IF EXISTS users, events, sessions, questions, question_answers;").Error
-	// if err != nil {
-	// 	logs.Error().Err(err).Msg("failed to drop table")
-	// 	os.Exit(1)
-	// }
+	err = db.Exec(`DROP TABLE IF EXISTS
+			users,
+			enterprises,
+			user_versions,
+			events,
+			sessions,
+			questions,
+			form_tasks,
+			form_scale_answers,
+			form_text_answers,
+			documents
+	`).Error
+	if err != nil {
+		logs.Error().Err(err).Msg("failed to drop table")
+		return nil, err
 
-	// err = db.AutoMigrate(
-	// 	&entity.Versioning{},
-	// 	&entity.User{},
-	// 	&entity.Event{},
-	// 	&entity.Session{},
-	// 	&entity.Question{},
-	// 	&entity.QuestionAnswer{},
-	// 	&entity.FormAnswerScale{},
-	// 	&entity.FormAnswerText{},
-	// )
-	// if err != nil {
-	// 	logs.Error().Err(err).Msg("failed to migrate")
-	// 	os.Exit(1)
-	// }
+	}
 
-	return db
+	err = db.AutoMigrate(
+		&entity.User{},
+		&entity.Enterprise{},
+		&entity.UserVersion{},
+		&entity.Event{},
+		&entity.Session{},
+		&entity.Question{},
+		&entity.FormTask{},
+		&entity.FormScaleAnswer{},
+		&entity.FormTextAnswer{},
+		&entity.Document{},
+	)
+	if err != nil {
+		logs.Error().Err(err).Msg("failed to migrate")
+		return nil, err
+
+	}
+
+	return db, nil
 }

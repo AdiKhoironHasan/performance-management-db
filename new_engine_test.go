@@ -12,7 +12,7 @@ import (
 )
 
 func TestEngineDBNew(t *testing.T) {
-	db := database.New()
+	db, _ := database.New()
 
 	scaleAnswers := []entity.FormScaleAnswer{}
 	f := faker.New()
@@ -64,7 +64,7 @@ func TestEngineDBNew(t *testing.T) {
 }
 
 func TestReport(t *testing.T) {
-	db := database.New()
+	db, _ := database.New()
 
 	type ReportData struct {
 		ID            int64     `json:"id" gorm:"column:reviewee_id"`
@@ -81,9 +81,9 @@ func TestReport(t *testing.T) {
 	// TODO: kurang leader assess
 	reports := []ReportData{}
 	rows, err := db.Raw(`
-	SELECT distinct 
+	SELECT distinct
 		fsa.reviewee_id                                        AS reviewee_id
-		     
+
 		       ,COUNT(DISTINCT fsa.reviewer_id)                        AS total_reviewer
 		       ,SUM(fsa.scale_value) / COUNT(DISTINCT fsa.reviewer_id) AS avg
 
@@ -116,7 +116,7 @@ func TestReport(t *testing.T) {
 			AND session_id IN (1, 2, 3)
 			GROUP BY  reviewee_id
 		) AS self_assess on self_assess.reviewee_id = fsa.reviewee_id
-		left join 
+		left join
 		(
 			SELECT  distinct reviewee_id
 			       ,SUM(scale_value)
@@ -130,7 +130,7 @@ func TestReport(t *testing.T) {
 		WHERE fsa.session_id IN (1, 2, 3) and fsa.reviewee_id in (1,2)
 		GROUP BY  fsa.reviewee_id
 		         ,users.name
-		         , self_assess.avg  
+		         , self_assess.avg
 		         ,member_assess.avg
 		          ,peers_assess.avg
 	`).Rows()

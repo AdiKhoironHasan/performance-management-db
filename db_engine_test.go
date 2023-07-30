@@ -7,7 +7,7 @@ import (
 )
 
 func TestEngineDB(t *testing.T) {
-	db := database.New()
+	db, _ := database.New()
 
 	seeder := seeder.NewSeeder(db)
 

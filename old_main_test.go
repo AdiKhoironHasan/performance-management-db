@@ -6,10 +6,11 @@ import (
 	"engine-db/database/seeder"
 	"engine-db/entity"
 	"fmt"
+	"testing"
 )
 
-func main() {
-	db := database.New()
+func TestOldMain(t *testing.T) {
+	db, _ := database.New()
 
 	seeder := seeder.NewSeeder(db)
 	gather := gather.NewGather(db)
