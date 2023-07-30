@@ -100,11 +100,11 @@ func TestMainV2(t *testing.T) {
 		EventStatusInProgress = "IN_PROGRESS"
 		EventStatusPassed     = "PASSED"
 
-		SessionChoosePeers                 = "choose_peers"
-		SessionSelfAssessmentNonLeadership = "self_assess_non_lead" //done
-		SessionSelfAssessmentLeadership    = "self_assess_lead"     //done
-		SessionPeerReviewNonLeadership     = "peers_assess_non_lead"
-		SessionPeerReviewLeadership        = "peers_assess_lead"
+		SessionChoosePeers                 = "choose_peers"           //done
+		SessionSelfAssessmentNonLeadership = "self_assess_non_lead"   //done
+		SessionSelfAssessmentLeadership    = "self_assess_lead"       //done
+		SessionPeerReviewNonLeadership     = "peers_assess_non_lead"  //done
+		SessionPeerReviewLeadership        = "peers_assess_lead"      //done
 		SessionTeamMemberNonLeadership     = "member_assess_non_lead" //done
 		SessionTeamMemberLeadership        = "member_assess_lead"     //done
 		SessionTeamMemberReviewLeader      = "leader_assess"          //done
@@ -643,6 +643,9 @@ func TestMainV2(t *testing.T) {
 		questionType := QuestionTypeScale
 		questionMax := 4
 
+		if i == 1 {
+			questionMax = 5
+		}
 		if i > 7 {
 			questionType = QuestionTypeText
 			questionMax = 0
@@ -684,6 +687,12 @@ func TestMainV2(t *testing.T) {
 		assert.NoError(t, err)
 
 		for _, question := range questions {
+			poin := 4
+
+			if question.Max == 5 {
+				poin = 5
+			}
+
 			if question.Type == QuestionTypeText {
 				memberAssessLeaderNonLeader.UserAnswerScale = append(memberAssessLeaderNonLeader.UserAnswerScale, entity.FormTextAnswer{
 					SessionID:  formTask.SessionID,
@@ -702,7 +711,7 @@ func TestMainV2(t *testing.T) {
 					RevieweeID: formTask.RevieweeID,
 					ReviewerID: formTask.ReviewerID,
 					Sort:       question.Sort,
-					ScaleValue: 4,
+					ScaleValue: float64(poin),
 					Max:        question.Max,
 				})
 			}
