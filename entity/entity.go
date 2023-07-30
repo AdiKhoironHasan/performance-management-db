@@ -92,7 +92,7 @@ type QuestionAnswer struct {
 	Type string `gorm:"column:type"`
 }
 
-type FormAnswerScale struct {
+type FormScaleAnswer struct {
 	ID         uint `gorm:"primaryKey"`
 	SessionID  int
 	RevieweeID int
