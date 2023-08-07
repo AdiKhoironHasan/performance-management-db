@@ -1,9 +1,11 @@
 package database
 
 import (
-	entity "engine-db/entity/new"
 	"engine-db/logger"
+	"fmt"
+	"net/url"
 
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -20,7 +22,16 @@ func New() (*gorm.DB, error) {
 		Level:                     sqlQueryLogLevel,
 		IgnoreRecordNotFoundError: true,
 	})
-	db, err := gorm.Open(postgres.Open("host=localhost user=postgres password=postgres dbname=project-PA-7 port=5432 sslmode=disable"),
+	dsn := url.URL{
+		User:     url.UserPassword("USER_NAME", "PASSWORD"),
+		Scheme:   "postgres",
+		Host:     fmt.Sprintf("%s:%d", "HOST", 5432),
+		Path:     "DB_NAME",
+		RawQuery: (&url.Values{"sslmode": []string{"disable"}}).Encode(),
+	}
+	x := dsn.String()
+	_ = x
+	db, err := gorm.Open(postgres.Open(dsn.String()),
 		&gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,
 
@@ -34,41 +45,41 @@ func New() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	err = db.Exec(`DROP TABLE IF EXISTS
-			users,
-			enterprises,
-			user_versions,
-			events,
-			sessions,
-			questions,
-			form_tasks,
-			form_scale_answers,
-			form_text_answers,
-			documents
-	`).Error
-	if err != nil {
-		logs.Error().Err(err).Msg("failed to drop table")
-		return nil, err
+	// err = db.Exec(`DROP TABLE IF EXISTS
+	// 		users,
+	// 		enterprises,
+	// 		user_versions,
+	// 		events,
+	// 		sessions,
+	// 		questions,
+	// 		form_tasks,
+	// 		form_scale_answers,
+	// 		form_text_answers,
+	// 		documents
+	// `).Error
+	// if err != nil {
+	// 	logs.Error().Err(err).Msg("failed to drop table")
+	// 	return nil, err
 
-	}
+	// }
 
-	err = db.AutoMigrate(
-		&entity.User{},
-		&entity.Enterprise{},
-		&entity.UserVersion{},
-		&entity.Event{},
-		&entity.Session{},
-		&entity.Question{},
-		&entity.FormTask{},
-		&entity.FormScaleAnswer{},
-		&entity.FormTextAnswer{},
-		&entity.Document{},
-	)
-	if err != nil {
-		logs.Error().Err(err).Msg("failed to migrate")
-		return nil, err
+	// err = db.AutoMigrate(
+	// 	&entity.User{},
+	// 	&entity.Enterprise{},
+	// 	&entity.UserVersion{},
+	// 	&entity.Event{},
+	// 	&entity.Session{},
+	// 	&entity.Question{},
+	// 	&entity.FormTask{},
+	// 	&entity.FormScaleAnswer{},
+	// 	&entity.FormTextAnswer{},
+	// 	&entity.Document{},
+	// )
+	// if err != nil {
+	// 	logs.Error().Err(err).Msg("failed to migrate")
+	// 	return nil, err
 
-	}
+	// }
 
 	return db, nil
 }

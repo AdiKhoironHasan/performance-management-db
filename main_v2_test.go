@@ -132,8 +132,8 @@ func TestMainV2(t *testing.T) {
 		dataUserLeader    = []entity.User{}
 		dataUserNonLeader = []entity.User{}
 
-		dataUserVersionDefault = entity.UserVersion{}
-		dataUserVersion        = entity.UserVersion{}
+		// dataUserVersionDefault = entity.UserVersion{}
+		dataUserVersion = entity.UserVersion{}
 
 		dataEvent = entity.Event{}
 
@@ -144,26 +144,61 @@ func TestMainV2(t *testing.T) {
 	db, err := database.New()
 	assert.NoError(t, err)
 
+	// enterprise token
+	enterpriseToken := "YOUR_ENTERPRISE_TOKEN"
+
 	// create new enterprise
 	err = db.Create(&entity.Enterprise{
-		Name:     "PT ABC",
-		Token:    "ABCDEFG",
+		Name:     "PT TEST STAGING LUCU",
+		Token:    enterpriseToken,
 		IsActive: true,
-		PrivyID:  "BA1111",
+		PrivyID:  "AGD8504",
+	}).Scan(&dataEnterprise).Error
+	assert.NoError(t, err)
+
+	// super_admin
+	defaultSuperAdminVersion := uuid.New().String()
+	assert.NoError(t, err)
+	err = db.Create(&entity.UserVersion{
+		Version:         "default-" + defaultSuperAdminVersion,
+		Ignore:          0,
+		UserCount:       1,
+		EnterpriseToken: dataEnterprise.Token,
+	}).Scan(&dataEnterprise).Error
+	assert.NoError(t, err)
+	err = db.Create(&entity.User{
+		EnterpriseToken:        enterpriseToken,
+		Version:                "default-" + defaultSuperAdminVersion,
+		Name:                   "Adnan Ganteng",
+		PrivyID:                "AGD8504",
+		Email:                  "default",
+		Status:                 "default",
+		JobTitle:               "default",
+		Level:                  "default",
+		Directorate:            "default",
+		Division:               "default",
+		Homebase:               "default",
+		DirectLeader:           "default",
+		DirectLeaderJobTitle:   "default",
+		DirectLeaderEmployeeID: "default",
+		PICHrbp:                "default",
+		HrbpPrivyID:            "default",
+		Role:                   "super_admin",
+		LeadershipStatus:       "default",
 	}).Scan(&dataEnterprise).Error
 	assert.NoError(t, err)
 
 	// 2. create new user version (default)
-	err = db.Create(&entity.UserVersion{
-		Version:         "default",
-		EnterpriseToken: dataEnterprise.Token,
-		Ignore:          0,
-		UserCount:       0,
-	}).Scan(&dataUserVersionDefault).Error
-	assert.NoError(t, err)
+	// err = db.Create(&entity.UserVersion{
+	// 	Version:         "default_seed",
+	// 	EnterpriseToken: dataEnterprise.Token,
+	// 	Ignore:          0,
+	// 	UserCount:       0,
+	// }).Scan(&dataUserVersionDefault).Error
+	// assert.NoError(t, err)
 
 	// Open the CSV file
-	filePath := "storage/data-user-v5.csv"
+	filePath := "storage/data-user-v6.csv"
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
@@ -176,6 +211,7 @@ func TestMainV2(t *testing.T) {
 
 	num := 1
 
+	user_version := "USR-" + uuid.New().String()
 	// iterate over CSV rows
 	for {
 		// read 1 per 1 of rows
@@ -190,12 +226,12 @@ func TestMainV2(t *testing.T) {
 			leadershipStatus := strings.ToLower((row[16]))
 
 			dataUsers = append(dataUsers, entity.User{
-				EnterpriseToken: dataEnterprise.Token,
-				Name:            row[0],
-				PrivyID:         row[1],
-				Email:           row[2],
-				Status:          row[3],
-				// JoinDate:               t, TODO: convert join date to time.Time
+				EnterpriseToken:        dataEnterprise.Token,
+				Version:                user_version,
+				Name:                   row[0],
+				PrivyID:                row[1],
+				Email:                  row[2],
+				Status:                 row[3],
 				JobTitle:               row[5],
 				Level:                  row[6],
 				Directorate:            row[7],
@@ -215,7 +251,7 @@ func TestMainV2(t *testing.T) {
 	}
 
 	err = db.Create(&entity.UserVersion{
-		Version:         "USR-" + uuid.New().String(),
+		Version:         user_version,
 		Ignore:          0,
 		UserCount:       int64(len(dataUsers)),
 		EnterpriseToken: dataEnterprise.Token,
@@ -225,7 +261,7 @@ func TestMainV2(t *testing.T) {
 	err = db.Create(&dataUsers).Error
 	assert.NoError(t, err)
 
-	err = db.Model(&entity.User{}).Where("version != ?", "default").Updates(map[string]interface{}{
+	err = db.Model(&entity.User{}).Where("id != ANY(ARRAY[1, 2])").Updates(map[string]interface{}{
 		"version": dataUserVersion.Version,
 	}).Error
 	assert.NoError(t, err)
